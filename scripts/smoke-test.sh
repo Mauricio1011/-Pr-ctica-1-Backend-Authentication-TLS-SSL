@@ -11,12 +11,15 @@ ADMIN_PASSWORD="${ADMIN_PASSWORD:-Admin2026!}"
 USER_PASSWORD="${USER_PASSWORD:-User2026!}"
 BASE="https://${HOST}:${HTTPS_PORT}"
 
+failures=0
+
 check() {
   local label="$1" expected="$2" actual="$3"
   if [ "$expected" = "$actual" ]; then
     echo "OK    $label (esperado $expected, obtenido $actual)"
   else
     echo "FALLO $label (esperado $expected, obtenido $actual)"
+    failures=$((failures + 1))
   fi
 }
 
@@ -30,6 +33,7 @@ check "TLS 1.3 aceptado" 200 "$(status_of --tlsv1.3 "$BASE/api/public/health")"
 
 if curl -s -o /dev/null --cacert "$CERT" --tls-max 1.1 "$BASE/api/public/health" 2>/dev/null; then
   echo "FALLO TLS 1.1 aceptado (deberia rechazarse)"
+  failures=$((failures + 1))
 else
   echo "OK    TLS 1.1 rechazado"
 fi
@@ -53,3 +57,9 @@ check "ADMIN en /api/admin/dashboard" 200 "$(status_of -H "Authorization: Bearer
 echo "== Cifrado negociado =="
 curl -s --cacert "$CERT" "$BASE/api/public/tls-info"
 echo
+
+if [ "$failures" -gt 0 ]; then
+  echo "$failures comprobaciones fallaron"
+  exit 1
+fi
+echo "Todas las comprobaciones pasaron"

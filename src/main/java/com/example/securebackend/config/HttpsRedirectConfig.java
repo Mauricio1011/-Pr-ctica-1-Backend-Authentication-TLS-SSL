@@ -21,6 +21,10 @@ public class HttpsRedirectConfig {
             @Value("${app.http-redirect.http-port:8080}") int httpPort,
             @Value("${server.port:8443}") int httpsPort) {
         return factory -> {
+            if (httpPort == httpsPort) {
+                throw new IllegalStateException(
+                        "app.http-redirect.http-port debe ser distinto de server.port");
+            }
             factory.addContextCustomizers(context -> {
                 SecurityConstraint constraint = new SecurityConstraint();
                 constraint.setUserConstraint("CONFIDENTIAL");

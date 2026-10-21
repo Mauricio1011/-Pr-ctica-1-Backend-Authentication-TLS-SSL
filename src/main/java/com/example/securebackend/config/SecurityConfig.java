@@ -4,6 +4,7 @@ import com.example.securebackend.security.JwtAuthenticationFilter;
 import com.example.securebackend.security.JwtService;
 import com.example.securebackend.security.RestAccessDeniedHandler;
 import com.example.securebackend.security.RestAuthenticationEntryPoint;
+import jakarta.servlet.DispatcherType;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -41,6 +42,7 @@ public class SecurityConfig {
                 .headers(headers -> headers.httpStrictTransportSecurity(
                         hsts -> hsts.includeSubDomains(true).maxAgeInSeconds(31536000)))
                 .authorizeHttpRequests(auth -> auth
+                        .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/auth/**", "/api/public/**", "/error").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
