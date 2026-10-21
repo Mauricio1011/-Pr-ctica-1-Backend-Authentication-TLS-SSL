@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: secure-backend
+
+server:
+  port: 8443
+  ssl:
+    enabled: true
+    key-store: classpath:keystore/backend-dev.p12
+    key-store-type: PKCS12
+    key-store-password: "${SSL_KEYSTORE_PASSWORD:changeit}"
+    key-alias: backend-dev
+    protocol: TLS
+    enabled-protocols: TLSv1.2,TLSv1.3
+  error:
+    include-message: never
+    include-stacktrace: never
+    include-binding-errors: never
+
+app:
+  http-redirect:
+    enabled: true
+    http-port: 8080
+  cors:
+    allowed-origins: "http://localhost:4200,https://localhost:4200"
+  jwt:
+    secret: "${JWT_SECRET:dev-only-secret-change-me-please-use-at-least-32-characters-long}"
+    issuer: secure-backend
+    expiration-minutes: 30
+  users:
+    admin-password: "${ADMIN_PASSWORD:Admin2026!}"
+    user-password: "${USER_PASSWORD:User2026!}"
