@@ -1,6 +1,8 @@
-# Backend Authentication & TLS/SSL
+# Implementación de Autenticación y Cifrado TLS/SSL en el API Backend mediante Spring Security y Java
 
-**HU-SEC-001 · Épica: Seguridad e Infraestructura Backend · Modalidad: desarrollo individual**
+**HU-SEC-001 · Épica: Seguridad e Infraestructura Backend · Modalidad: desarrollo individual · Rol: desarrollador backend**
+
+Repositorio: https://github.com/Mauricio1011/-Pr-ctica-1-Backend-Authentication-TLS-SSL
 
 ## Introducción
 
@@ -39,7 +41,7 @@ src/main/resources
 ├── logback-spring.xml             bitácora de seguridad
 └── keystore/backend-dev.p12       keystore de desarrollo (autofirmado)
 certs/backend-dev.crt              certificado público para curl y Postman
-scripts                            generate-keystore (.sh/.bat) y smoke-test.sh
+scripts                            generate-keystore (.sh/.bat) y smoke-test (.sh/.ps1)
 ```
 
 ## Ejecución
@@ -80,7 +82,11 @@ server:
     key-store-password: "${SSL_KEYSTORE_PASSWORD:changeit}"
     key-alias: backend-dev
     protocol: TLS
-    enabled-protocols: TLSv1.2,TLSv1.3
+    enabled-protocols: TLSv1.2, TLSv1.3
+    ciphers: TLS_AES_128_GCM_SHA256, TLS_AES_256_GCM_SHA384,
+             TLS_CHACHA20_POLY1305_SHA256,
+             TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+             TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
 ```
 
 ## Usuarios de prueba
@@ -138,7 +144,7 @@ curl -i --cacert certs/backend-dev.crt -H "Authorization: Bearer $TOKEN" https:/
 curl -i --cacert certs/backend-dev.crt -H "Authorization: Bearer $TOKEN" https://localhost:8443/api/admin/dashboard
 ```
 
-El script `scripts/smoke-test.sh` ejecuta toda esta secuencia y marca cada resultado como OK o FALLO.
+El script `scripts/smoke-test.sh` (o `scripts\smoke-test.ps1` en Windows) ejecuta toda esta secuencia, marca cada resultado como OK o FALLO y termina con código 1 si alguna comprobación no pasa. La aplicación debe estar levantada.
 
 ### Postman
 
@@ -187,7 +193,7 @@ Eventos registrados: `LOGIN_SUCCESS`, `LOGIN_FAILED`, `UNAUTHORIZED_ACCESS` (con
 | Criterio | Implementación |
 |----------|----------------|
 | Keystore PKCS12 | `keytool -genkeypair` / `scripts/generate-keystore.*` → `backend-dev.p12` |
-| Solo TLS 1.2 y 1.3 sobre HTTPS | `server.ssl.enabled-protocols=TLSv1.2,TLSv1.3` en el puerto 8443 |
+| Solo TLS 1.2 y 1.3 sobre HTTPS | `server.ssl.enabled-protocols` en el puerto 8443, con suites AEAD (GCM y ChaCha20) |
 | HTTP redirigido o rechazado | `HttpsRedirectConfig`: conector 8080 con restricción `CONFIDENTIAL` que redirige a 8443 |
 | `SecurityFilterChain` protege el API | `SecurityConfig`: `/api/auth/**` y `/api/public/**` públicos, `/api/admin/**` solo ADMIN, `anyRequest().authenticated()` |
 | Token Bearer/JWT obligatorio | `JwtAuthenticationFilter` + `JwtService` (HS256, emisor y expiración validados) |
@@ -201,8 +207,9 @@ Eventos registrados: `LOGIN_SUCCESS`, `LOGIN_FAILED`, `UNAUTHORIZED_ACCESS` (con
 mvn test
 ```
 
-- `SecurityIntegrationTest`: login correcto e incorrecto, validación, 401 sin token, token inválido y expirado, 403 para usuario sin rol ADMIN y 200 para ADMIN.
-- `TlsConfigurationTest`: levanta el servidor con HTTPS real y verifica que acepta clientes TLS 1.2 y TLS 1.3.
+- `SecurityIntegrationTest`: login correcto e incorrecto, validación, preflight CORS de Angular, 401 sin token, token inválido y expirado, 403 para usuario sin rol ADMIN y 200 para ADMIN.
+- `TlsConfigurationTest`: levanta el servidor con HTTPS real, comprueba que el conector solo habilita TLS 1.2 y TLS 1.3, que un cliente negocia esos protocolos y que HTTP plano contra el puerto seguro es rechazado.
+- `HttpRedirectTest`: una petición a `http://localhost:<puerto>` responde 302 hacia `https://localhost:<puerto-seguro>/...`.
 
 ## Conexión desde Angular
 
